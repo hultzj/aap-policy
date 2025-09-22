@@ -15,6 +15,23 @@ stringData:
   password: {{ .Values.aapInstance.admin.password | quote }}
 ---
 {{- end }}
+{{- if and .Values.aapInstance.license.enabled (not (empty .Values.aapInstance.license.content)) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.aapInstance.license.secretName }}
+  namespace: {{ .Values.aapInstance.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.aapInstance.name }}
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+type: Opaque
+stringData:
+  license: {{ .Values.aapInstance.license.content | quote }}
+---
+{{- end }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -80,6 +97,11 @@ spec:
   admin_user: {{ .Values.aapInstance.admin.username }}
   admin_email: {{ .Values.aapInstance.admin.email }}
   admin_password_secret: {{ .Values.aapInstance.name }}-admin-password
+  
+  {{- if .Values.aapInstance.license.enabled }}
+  # License configuration
+  license_secret: {{ .Values.aapInstance.license.secretName }}
+  {{- end }}
   
   # PostgreSQL configuration
   {{- if .Values.aapInstance.postgres.external.enabled }}

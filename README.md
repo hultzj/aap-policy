@@ -75,6 +75,11 @@ aap-setup/
 - **Red Hat GitOps Operator** installed
 - **GitOps ServiceAccount** with cluster-admin privileges
 - **Red Hat Operators catalog** available
+- **🔑 Valid AAP License** - A Red Hat Ansible Automation Platform license is **REQUIRED** before deployment
+  - Obtain from [Red Hat Hybrid Cloud Console](https://console.redhat.com)
+  - Navigate to **Automation Analytics > Subscription Management**
+  - Download trial license (usually 60-day evaluation) or use existing subscription license
+  - ⚠️ **Without a license, the AAP web UI will display a white page**
 
 ### Critical Setup Steps
 
@@ -175,6 +180,44 @@ spec:
         - name: aapInstance.admin.email
           value: "admin@mycompany.com"    # Admin email
 ```
+
+### 🔑 License Configuration (REQUIRED)
+
+**CRITICAL:** AAP requires a valid license to function. Configure license in `gitops-apps-day-2.yaml`:
+
+```yaml
+spec:
+  source:
+    helm:
+      parameters:
+        # Enable license configuration
+        - name: aapInstance.license.enabled
+          value: "true"
+        - name: aapInstance.license.secretName
+          value: "aap-license"
+        # Provide base64 encoded license JSON content
+        - name: aapInstance.license.content
+          value: "ewogICJzdWJzY3JpcHRpb25faWQiOiAiMTIzNDU2IiwKICAibGljZW5zZWQiOiB0cnVlLAogICJleHBpcmF0aW9uX2RhdGUiOiAiMjAyNS0xMi0zMSIKfQ=="
+```
+
+**🛠️ How to get the license content:**
+
+```bash
+# Method 1: From downloaded license file
+base64 -i your-license-file.json
+
+# Method 2: From license JSON content
+echo '{"subscription_id": "your-sub", "licensed": true}' | base64
+```
+
+**⚠️ Alternative Methods:**
+- Upload via AAP web UI after deployment (if accessible)
+- Create license secret manually before deployment:
+  ```bash
+  oc create secret generic aap-license \
+    --from-file=license=your-license-file.json \
+    -n ansible-automation-platform
+  ```
 
 ### Repository URL Configuration
 

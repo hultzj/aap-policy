@@ -10,6 +10,15 @@ aapInstance:
     username: "admin"
     password: ""  # Will be auto-generated if empty
     email: "admin@example.com"
+  # License configuration
+  license:
+    # Set to true to enable license from secret
+    enabled: false
+    # Name of the secret containing the license file
+    # The secret should contain a key 'license' with the license JSON content
+    secretName: "aap-license"
+    # If license content is provided directly (base64 encoded JSON)
+    content: ""
   resources:
     requests:
       cpu: "1000m"

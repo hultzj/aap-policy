@@ -29,6 +29,13 @@ spec:
           value: "admin"
         - name: aapInstance.admin.email
           value: "admin@example.com"
+        # License configuration (REQUIRED - set enabled=true and provide license content)
+        - name: aapInstance.license.enabled
+          value: "false"
+        - name: aapInstance.license.secretName
+          value: "aap-license"
+        - name: aapInstance.license.content
+          value: ""  # Base64 encoded license JSON content
         # Optional components (set to true to enable)
         - name: automationHub.enabled
           value: "false"
