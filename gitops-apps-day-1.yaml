@@ -17,7 +17,7 @@ spec:
   project: default
   source:
     path: apps/aap-operator
-    repoURL: https://github.com/hultzj/aap-setup.git
+    repoURL: https://github.com/hultzj/aap-policy.git
     targetRevision: main
   syncPolicy:
     automated:
@@ -53,7 +53,7 @@ spec:
   project: default
   source:
     path: apps/aap-rbac
-    repoURL: https://github.com/hultzj/aap-setup.git
+    repoURL: https://github.com/hultzj/aap-policy.git
     targetRevision: main
   syncPolicy:
     automated:

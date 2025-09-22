@@ -17,7 +17,7 @@ spec:
   project: default
   source:
     path: apps/aap-instance
-    repoURL: https://github.com/hultzj/aap-setup.git
+    repoURL: https://github.com/hultzj/aap-policy.git
     targetRevision: main
     helm:
       valueFiles:
@@ -81,7 +81,7 @@ spec:
   project: default
   source:
     path: apps/aap-servicemesh
-    repoURL: https://github.com/hultzj/aap-setup.git
+    repoURL: https://github.com/hultzj/aap-policy.git
     targetRevision: main
     helm:
       valueFiles:
