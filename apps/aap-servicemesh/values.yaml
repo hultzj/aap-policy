@@ -34,6 +34,6 @@ automation:
   serviceAccount:
     name: "aap-setup-automation"
   image:
-    repository: "quay.io/ansible/creator-ubi8"
+    repository: "registry.redhat.io/openshift4/ose-cli"
     tag: "latest"
     pullPolicy: "IfNotPresent"
