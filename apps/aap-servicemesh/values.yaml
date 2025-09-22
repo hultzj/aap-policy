@@ -36,4 +36,4 @@ automation:
   image:
     repository: "registry.redhat.io/openshift4/ose-cli"
     tag: "latest"
-    pullPolicy: "IfNotPresent"
+    pullPolicy: "Always"
