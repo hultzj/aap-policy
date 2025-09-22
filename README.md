@@ -197,7 +197,7 @@ spec:
           value: "aap-license"
         # Provide base64 encoded license JSON content
         - name: aapInstance.license.content
-          value: "ewogICJzdWJzY3JpcHRpb25faWQiOiAiMTIzNDU2IiwKICAibGljZW5zZWQiOiB0cnVlLAogICJleHBpcmF0aW9uX2RhdGUiOiAiMjAyNS0xMi0zMSIKfQ=="
+          value: "..."
 ```
 
 **🛠️ How to get the license content:**
