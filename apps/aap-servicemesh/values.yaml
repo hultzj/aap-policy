@@ -1,0 +1,39 @@
+# Service Mesh Configuration Values
+serviceMesh:
+  enabled: false
+  
+  # AAP Instance details
+  aapInstance:
+    name: "aap-controller"
+    namespace: "ansible-automation-platform"
+  
+  # Istio configuration
+  istio:
+    enabled: false
+    gateway:
+      name: "aap-gateway"
+      namespace: "istio-system"
+    virtualService:
+      name: "aap-vs"
+      hosts:
+        - "aap.example.com"
+    # TLS configuration
+    tls:
+      enabled: true
+      secretName: "aap-tls-secret"
+  
+  # OpenShift Service Mesh configuration
+  ossm:
+    enabled: false
+    memberRoll:
+      name: "default"
+      namespace: "istio-system"
+
+# Automation configuration
+automation:
+  serviceAccount:
+    name: "aap-setup-automation"
+  image:
+    repository: "quay.io/ansible/creator-ubi8"
+    tag: "latest"
+    pullPolicy: "IfNotPresent"

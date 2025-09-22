@@ -1,0 +1,144 @@
+{{- if not (empty .Values.aapInstance.admin.password) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.aapInstance.name }}-admin-password
+  namespace: {{ .Values.aapInstance.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.aapInstance.name }}
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+type: Opaque
+stringData:
+  password: {{ .Values.aapInstance.admin.password | quote }}
+---
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.aapInstance.name }}-password-generator
+  namespace: {{ .Values.aapInstance.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.aapInstance.name }}
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+    component: password-generator
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ .Values.automation.serviceAccount.name }}
+      containers:
+      - name: password-generator
+        image: {{ .Values.automation.image.repository }}:{{ .Values.automation.image.tag }}
+        imagePullPolicy: {{ .Values.automation.image.pullPolicy }}
+        command: ["bash", "-c"]
+        args:
+        - |
+          {{- if empty .Values.aapInstance.admin.password }}
+          # Generate password only if secret doesn't exist and no password provided
+          if ! oc get secret {{ .Values.aapInstance.name }}-admin-password -n {{ .Values.aapInstance.namespace }} >/dev/null 2>&1; then
+            PASSWORD=$(openssl rand -base64 16)
+            oc create secret generic {{ .Values.aapInstance.name }}-admin-password \
+              --from-literal=password="$PASSWORD" \
+              -n {{ .Values.aapInstance.namespace }}
+            echo "Generated admin password for {{ .Values.aapInstance.name }}"
+          else
+            echo "Admin password secret already exists"
+          fi
+          {{- else }}
+          echo "Using provided admin password"
+          {{- end }}
+---
+apiVersion: automationcontroller.ansible.com/v1beta1
+kind: AutomationController
+metadata:
+  name: {{ .Values.aapInstance.name }}
+  namespace: {{ .Values.aapInstance.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.aapInstance.name }}
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  create_preload_data: true
+  route_tls_termination_mechanism: Edge
+  ingress_type: Route
+  loadbalancer_port: 80
+  loadbalancer_protocol: http
+  nodeport_port: 30080
+  
+  # Admin configuration
+  admin_user: {{ .Values.aapInstance.admin.username }}
+  admin_email: {{ .Values.aapInstance.admin.email }}
+  admin_password_secret: {{ .Values.aapInstance.name }}-admin-password
+  
+  # PostgreSQL configuration
+  {{- if .Values.aapInstance.postgres.external.enabled }}
+  # External PostgreSQL configuration
+  postgres_configuration_secret: {{ .Values.aapInstance.postgres.external.secretName | default (printf "%s-postgres-configuration" .Values.aapInstance.name) }}
+  {{- else }}
+  # Internal PostgreSQL configuration
+  postgres_storage_requirements:
+    requests:
+      storage: {{ .Values.aapInstance.postgres.internal.storage.size }}
+    {{- if .Values.aapInstance.postgres.internal.storage.storageClass }}
+    storageClassName: {{ .Values.aapInstance.postgres.internal.storage.storageClass }}
+    {{- end }}
+  
+  postgres_resource_requirements:
+    requests:
+      cpu: {{ .Values.aapInstance.postgres.internal.resources.requests.cpu }}
+      memory: {{ .Values.aapInstance.postgres.internal.resources.requests.memory }}
+    limits:
+      cpu: {{ .Values.aapInstance.postgres.internal.resources.limits.cpu }}
+      memory: {{ .Values.aapInstance.postgres.internal.resources.limits.memory }}
+  {{- end }}
+  
+  # Task resource configuration
+  task_resource_requirements:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  
+  # Web UI resource configuration
+  web_resource_requirements:
+    requests:
+      cpu: {{ .Values.aapInstance.resources.requests.cpu }}
+      memory: {{ .Values.aapInstance.resources.requests.memory }}
+    limits:
+      cpu: {{ .Values.aapInstance.resources.limits.cpu }}
+      memory: {{ .Values.aapInstance.resources.limits.memory }}
+  
+  # Execution environment resource configuration
+  ee_resource_requirements:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  
+  # Node selector, tolerations, and affinity
+  {{- with .Values.automation.nodeSelector }}
+  node_selector: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  
+  {{- with .Values.automation.tolerations }}
+  tolerations: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  
+  {{- with .Values.automation.affinity }}
+  affinity: {{ toYaml . | nindent 4 }}
+  {{- end }}

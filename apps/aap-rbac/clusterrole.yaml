@@ -1,0 +1,72 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aap-setup-operator-manager
+  labels:
+    app.kubernetes.io/name: aap-setup
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+rules:
+# Operator lifecycle management
+- apiGroups: ["operators.coreos.com"]
+  resources: ["subscriptions", "operatorgroups", "clusterserviceversions", "installplans"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# AAP resources
+- apiGroups: ["automationcontroller.ansible.com"]
+  resources: ["automationcontrollers"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["automationcontroller.ansible.com"]
+  resources: ["automationcontrollers/status"]
+  verbs: ["get", "update", "patch"]
+# Core resources
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["configmaps", "secrets", "services", "serviceaccounts"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims", "persistentvolumes"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list", "watch", "create"]
+# Apps resources
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments/status", "replicasets/status", "statefulsets/status"]
+  verbs: ["get", "update", "patch"]
+# Batch resources
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Routes (OpenShift)
+- apiGroups: ["route.openshift.io"]
+  resources: ["routes"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Service Mesh resources (optional)
+- apiGroups: ["networking.istio.io"]
+  resources: ["gateways", "virtualservices", "destinationrules"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["maistra.io"]
+  resources: ["servicemeshmemberrolls", "servicemeshcontrolplanes"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Monitoring
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors", "prometheusrules"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# RBAC
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Storage
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "watch"]

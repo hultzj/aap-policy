@@ -1,0 +1,150 @@
+{{- if .Values.automationHub.enabled }}
+{{- if not (empty .Values.automationHub.admin.password) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.automationHub.name }}-admin-password
+  namespace: {{ .Values.automationHub.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.automationHub.name }}
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+type: Opaque
+stringData:
+  password: {{ .Values.automationHub.admin.password | quote }}
+---
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.automationHub.name }}-password-generator
+  namespace: {{ .Values.automationHub.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.automationHub.name }}
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+    component: password-generator
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ .Values.automation.serviceAccount.name }}
+      containers:
+      - name: password-generator
+        image: {{ .Values.automation.image.repository }}:{{ .Values.automation.image.tag }}
+        imagePullPolicy: {{ .Values.automation.image.pullPolicy }}
+        command: ["bash", "-c"]
+        args:
+        - |
+          {{- if empty .Values.automationHub.admin.password }}
+          # Generate password only if secret doesn't exist and no password provided
+          if ! oc get secret {{ .Values.automationHub.name }}-admin-password -n {{ .Values.automationHub.namespace }} >/dev/null 2>&1; then
+            PASSWORD=$(openssl rand -base64 16)
+            oc create secret generic {{ .Values.automationHub.name }}-admin-password \
+              --from-literal=password="$PASSWORD" \
+              -n {{ .Values.automationHub.namespace }}
+            echo "Generated admin password for {{ .Values.automationHub.name }}"
+          else
+            echo "Admin password secret already exists"
+          fi
+          {{- else }}
+          echo "Using provided admin password"
+          {{- end }}
+---
+apiVersion: automationhub.ansible.com/v1beta1
+kind: AutomationHub
+metadata:
+  name: {{ .Values.automationHub.name }}
+  namespace: {{ .Values.automationHub.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.automationHub.name }}
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "15"
+spec:
+  route_tls_termination_mechanism: Edge
+  ingress_type: Route
+  loadbalancer_port: 80
+  loadbalancer_protocol: http
+  
+  # Admin configuration
+  admin_user: {{ .Values.automationHub.admin.username }}
+  admin_email: {{ .Values.automationHub.admin.email }}
+  admin_password_secret: {{ .Values.automationHub.name }}-admin-password
+  
+  # Storage configuration
+  file_storage_size: {{ .Values.automationHub.storage.size }}
+  {{- if .Values.automationHub.storage.storageClass }}
+  file_storage_storage_class: {{ .Values.automationHub.storage.storageClass }}
+  {{- end }}
+  
+  # PostgreSQL configuration
+  {{- if .Values.automationHub.postgres.external.enabled }}
+  # External PostgreSQL configuration
+  postgres_configuration_secret: {{ .Values.automationHub.postgres.external.secretName | default (printf "%s-postgres-configuration" .Values.automationHub.name) }}
+  {{- else }}
+  # Internal PostgreSQL configuration
+  postgres_storage_requirements:
+    requests:
+      storage: {{ .Values.automationHub.postgres.internal.storage.size }}
+    {{- if .Values.automationHub.postgres.internal.storage.storageClass }}
+    storageClassName: {{ .Values.automationHub.postgres.internal.storage.storageClass }}
+    {{- end }}
+  
+  postgres_resource_requirements:
+    requests:
+      cpu: {{ .Values.automationHub.postgres.internal.resources.requests.cpu }}
+      memory: {{ .Values.automationHub.postgres.internal.resources.requests.memory }}
+    limits:
+      cpu: {{ .Values.automationHub.postgres.internal.resources.limits.cpu }}
+      memory: {{ .Values.automationHub.postgres.internal.resources.limits.memory }}
+  {{- end }}
+  
+  # Web resource configuration
+  web_resource_requirements:
+    requests:
+      cpu: {{ .Values.automationHub.resources.requests.cpu }}
+      memory: {{ .Values.automationHub.resources.requests.memory }}
+    limits:
+      cpu: {{ .Values.automationHub.resources.limits.cpu }}
+      memory: {{ .Values.automationHub.resources.limits.memory }}
+  
+  # Content resource configuration
+  content_resource_requirements:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  
+  # Redis resource configuration
+  redis_resource_requirements:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  
+  # Node selector, tolerations, and affinity
+  {{- with .Values.automation.nodeSelector }}
+  node_selector: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  
+  {{- with .Values.automation.tolerations }}
+  tolerations: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  
+  {{- with .Values.automation.affinity }}
+  affinity: {{ toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

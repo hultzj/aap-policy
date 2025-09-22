@@ -1,0 +1,14 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: aap-operator-group
+  namespace: ansible-automation-platform
+  labels:
+    app.kubernetes.io/name: aap-operator
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  targetNamespaces:
+    - ansible-automation-platform

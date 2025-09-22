@@ -1,0 +1,71 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aap-operator-day1
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/name: aap-operator
+    app.kubernetes.io/part-of: ansible-automation-platform
+    deployment-phase: day-1
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  destination:
+    namespace: ansible-automation-platform
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: apps/aap-operator
+    repoURL: https://github.com/hultzj/aap-setup.git
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application  
+metadata:
+  name: aap-rbac-day1
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/name: aap-rbac
+    app.kubernetes.io/part-of: ansible-automation-platform
+    deployment-phase: day-1
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  destination:
+    namespace: ansible-automation-platform
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: apps/aap-rbac
+    repoURL: https://github.com/hultzj/aap-setup.git
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3

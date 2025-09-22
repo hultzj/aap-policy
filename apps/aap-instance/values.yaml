@@ -1,0 +1,144 @@
+# AAP Instance Configuration Values
+aapOperator:
+  version: "2.5"
+  namespace: "ansible-automation-platform"
+
+aapInstance:
+  name: "aap-controller"
+  namespace: "ansible-automation-platform"
+  admin:
+    username: "admin"
+    password: ""  # Will be auto-generated if empty
+    email: "admin@example.com"
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
+  storage:
+    size: "20Gi"
+    storageClass: ""  # Use default storage class
+  
+  # PostgreSQL Configuration
+  postgres:
+    # Use external postgres database (optional)
+    external:
+      enabled: false
+      # If enabled, create a secret with these connection details
+      host: ""
+      port: "5432"
+      database: "awx"
+      username: "awx"
+      password: ""
+      sslMode: "prefer"
+      secretName: ""  # Use existing secret if provided
+    # Internal postgres configuration (used when external.enabled=false)
+    internal:
+      storage:
+        size: "20Gi"
+        storageClass: ""
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+        limits:
+          cpu: "2000m"
+          memory: "4Gi"
+
+# Optional Private Automation Hub Configuration
+automationHub:
+  enabled: false
+  name: "automation-hub"
+  namespace: "ansible-automation-platform"
+  admin:
+    username: "admin"
+    password: ""  # Will be auto-generated if empty
+    email: "admin@example.com"
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
+  storage:
+    size: "20Gi"
+    storageClass: ""
+  # External postgres for hub (optional)
+  postgres:
+    external:
+      enabled: false
+      host: ""
+      port: "5432"
+      database: "pulp"
+      username: "pulp"
+      password: ""
+      sslMode: "prefer"
+      secretName: ""
+    internal:
+      storage:
+        size: "20Gi"
+        storageClass: ""
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "1000m"
+          memory: "2Gi"
+
+# Optional Event Driven Ansible Controller Configuration
+edaController:
+  enabled: false
+  name: "eda-controller"
+  namespace: "ansible-automation-platform"
+  admin:
+    username: "admin"
+    password: ""  # Will be auto-generated if empty
+    email: "admin@example.com"
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  storage:
+    size: "10Gi"
+    storageClass: ""
+  # External postgres for EDA (optional)
+  postgres:
+    external:
+      enabled: false
+      host: ""
+      port: "5432"
+      database: "eda"
+      username: "eda"
+      password: ""
+      sslMode: "prefer"
+      secretName: ""
+    internal:
+      storage:
+        size: "10Gi"
+        storageClass: ""
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "1000m"
+          memory: "2Gi"
+
+# Job configuration for Ansible automation
+automation:
+  serviceAccount:
+    name: "aap-setup-automation"
+  image:
+    repository: "quay.io/ansible/creator-ubi8"
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}

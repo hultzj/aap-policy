@@ -1,0 +1,160 @@
+{{- if .Values.serviceMesh.enabled }}
+{{- if .Values.serviceMesh.ossm.enabled }}
+# OpenShift Service Mesh Member Roll Configuration
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: aap-servicemesh-ossm-config
+  namespace: {{ .Values.serviceMesh.aapInstance.namespace }}
+  labels:
+    app.kubernetes.io/name: aap-servicemesh
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+    component: ossm-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ .Values.automation.serviceAccount.name }}
+      containers:
+      - name: ossm-configurator
+        image: {{ .Values.automation.image.repository }}:{{ .Values.automation.image.tag }}
+        imagePullPolicy: {{ .Values.automation.image.pullPolicy }}
+        command: ["bash", "-c"]
+        args:
+        - |
+          echo "Configuring OpenShift Service Mesh..."
+          
+          # Check if ServiceMeshMemberRoll exists
+          if oc get servicemeshmemberroll {{ .Values.serviceMesh.ossm.memberRoll.name }} -n {{ .Values.serviceMesh.ossm.memberRoll.namespace }} >/dev/null 2>&1; then
+            echo "ServiceMeshMemberRoll exists, updating..."
+            # Get existing members
+            EXISTING_MEMBERS=$(oc get servicemeshmemberroll {{ .Values.serviceMesh.ossm.memberRoll.name }} -n {{ .Values.serviceMesh.ossm.memberRoll.namespace }} -o jsonpath='{.spec.members}' | tr -d '[]" ' | tr ',' '\n')
+            
+            # Check if our namespace is already a member
+            if echo "$EXISTING_MEMBERS" | grep -q "^{{ .Values.serviceMesh.aapInstance.namespace }}$"; then
+              echo "Namespace {{ .Values.serviceMesh.aapInstance.namespace }} is already in ServiceMeshMemberRoll"
+            else
+              echo "Adding {{ .Values.serviceMesh.aapInstance.namespace }} to ServiceMeshMemberRoll"
+              oc patch servicemeshmemberroll {{ .Values.serviceMesh.ossm.memberRoll.name }} -n {{ .Values.serviceMesh.ossm.memberRoll.namespace }} --type='merge' -p='{"spec":{"members":["'$(echo "$EXISTING_MEMBERS" | tr '\n' ',' | sed 's/,$//')','{{ .Values.serviceMesh.aapInstance.namespace }}'"]}}'
+            fi
+          else
+            echo "ServiceMeshMemberRoll not found, creating..."
+            cat <<EOF | oc apply -f -
+          apiVersion: maistra.io/v1
+          kind: ServiceMeshMemberRoll
+          metadata:
+            name: {{ .Values.serviceMesh.ossm.memberRoll.name }}
+            namespace: {{ .Values.serviceMesh.ossm.memberRoll.namespace }}
+          spec:
+            members:
+              - {{ .Values.serviceMesh.aapInstance.namespace }}
+          EOF
+          fi
+          
+          echo "OSSM configuration completed"
+---
+{{- end }}
+
+{{- if or .Values.serviceMesh.istio.enabled .Values.serviceMesh.ossm.enabled }}
+# Istio Gateway Configuration
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: {{ .Values.serviceMesh.istio.gateway.name }}
+  namespace: {{ if .Values.serviceMesh.istio.enabled }}{{ .Values.serviceMesh.istio.gateway.namespace }}{{ else }}{{ .Values.serviceMesh.aapInstance.namespace }}{{ end }}
+  labels:
+    app.kubernetes.io/name: aap-servicemesh
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        {{- range .Values.serviceMesh.istio.virtualService.hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      tls:
+        httpsRedirect: true
+    {{- if .Values.serviceMesh.istio.tls.enabled }}
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        {{- range .Values.serviceMesh.istio.virtualService.hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      tls:
+        mode: SIMPLE
+        credentialName: {{ .Values.serviceMesh.istio.tls.secretName }}
+    {{- end }}
+---
+# Istio VirtualService Configuration
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.serviceMesh.istio.virtualService.name }}
+  namespace: {{ .Values.serviceMesh.aapInstance.namespace }}
+  labels:
+    app.kubernetes.io/name: aap-servicemesh
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+spec:
+  hosts:
+    {{- range .Values.serviceMesh.istio.virtualService.hosts }}
+    - {{ . | quote }}
+    {{- end }}
+  gateways:
+    - {{ if .Values.serviceMesh.istio.enabled }}{{ .Values.serviceMesh.istio.gateway.namespace }}{{ else }}{{ .Values.serviceMesh.aapInstance.namespace }}{{ end }}/{{ .Values.serviceMesh.istio.gateway.name }}
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: {{ .Values.serviceMesh.aapInstance.name }}-service
+            port:
+              number: 80
+      headers:
+        request:
+          set:
+            X-Forwarded-Proto: https
+---
+# Istio DestinationRule Configuration
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: {{ .Values.serviceMesh.aapInstance.name }}-dr
+  namespace: {{ .Values.serviceMesh.aapInstance.namespace }}
+  labels:
+    app.kubernetes.io/name: aap-servicemesh
+    app.kubernetes.io/part-of: ansible-automation-platform
+    app.kubernetes.io/managed-by: gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+spec:
+  host: {{ .Values.serviceMesh.aapInstance.name }}-service
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 10
+        maxRequestsPerConnection: 2
+    loadBalancer:
+      simple: ROUND_ROBIN
+{{- end }}
+{{- end }}

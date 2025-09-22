@@ -1,0 +1,106 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aap-instance-day2
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/name: aap-instance
+    app.kubernetes.io/part-of: ansible-automation-platform
+    deployment-phase: day-2
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  destination:
+    namespace: ansible-automation-platform
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: apps/aap-instance
+    repoURL: https://github.com/hultzj/aap-setup.git
+    targetRevision: main
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: aapOperator.version
+          value: "2.5"
+        - name: aapInstance.admin.username
+          value: "admin"
+        - name: aapInstance.admin.email
+          value: "admin@example.com"
+        # Optional components (set to true to enable)
+        - name: automationHub.enabled
+          value: "false"
+        - name: edaController.enabled
+          value: "false"
+        # External postgres configuration (set to true to use external DB)
+        - name: aapInstance.postgres.external.enabled
+          value: "false"
+        - name: automationHub.postgres.external.enabled
+          value: "false"
+        - name: edaController.postgres.external.enabled
+          value: "false"
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - PrunePropagationPolicy=foreground
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  revisionHistoryLimit: 3
+  ignoreDifferences:
+    - group: automationcontroller.ansible.com
+      kind: AutomationController
+      jsonPointers:
+        - /status
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aap-servicemesh-day2
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/name: aap-servicemesh
+    app.kubernetes.io/part-of: ansible-automation-platform
+    deployment-phase: day-2
+    optional: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+spec:
+  destination:
+    namespace: ansible-automation-platform
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: apps/aap-servicemesh
+    repoURL: https://github.com/hultzj/aap-setup.git
+    targetRevision: main
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: serviceMesh.enabled
+          value: "false"
+        - name: serviceMesh.istio.enabled
+          value: "false"
+        - name: serviceMesh.ossm.enabled
+          value: "false"
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 3
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 3

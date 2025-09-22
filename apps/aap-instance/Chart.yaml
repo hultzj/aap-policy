@@ -1,0 +1,14 @@
+apiVersion: v2
+name: aap-instance
+description: AAP Instance Configuration for GitOps deployment
+type: application
+version: 0.1.0
+appVersion: "2.5"
+keywords:
+  - ansible
+  - automation
+  - aap
+  - instance
+maintainers:
+  - name: Platform Team
+    email: platform-team@example.com

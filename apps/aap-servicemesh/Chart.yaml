@@ -1,0 +1,16 @@
+apiVersion: v2
+name: aap-servicemesh
+description: AAP Service Mesh Configuration for GitOps deployment
+type: application
+version: 0.1.0
+appVersion: "1.0"
+keywords:
+  - ansible
+  - automation
+  - aap
+  - servicemesh
+  - istio
+  - ossm
+maintainers:
+  - name: Platform Team
+    email: platform-team@example.com
