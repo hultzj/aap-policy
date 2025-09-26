@@ -1,21 +1,19 @@
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: ansible-automation-platform-operator
-  namespace: ansible-automation-platform
+  name: {{ .Values.operator.name }}
+  namespace: {{ .Values.operator.namespace }}
   labels:
-    app.kubernetes.io/name: ansible-automation-platform-operator
-    app.kubernetes.io/part-of: ansible-automation-platform
-    app.kubernetes.io/managed-by: gitops
+    {{- toYaml .Values.operator.labels | nindent 4 }}
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
-  channel: stable-2.5
-  name: ansible-automation-platform-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
-  installPlanApproval: Automatic
+  channel: {{ .Values.operator.subscription.channel }}
+  name: {{ .Values.operator.name }}
+  source: {{ .Values.operator.subscription.source }}
+  sourceNamespace: {{ .Values.operator.subscription.sourceNamespace }}
+  installPlanApproval: {{ .Values.operator.subscription.installPlanApproval }}
   config:
     env:
       - name: WATCH_NAMESPACE
-        value: ansible-automation-platform
+        value: {{ .Values.operator.environment.watchNamespace }}

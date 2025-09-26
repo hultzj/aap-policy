@@ -19,6 +19,25 @@ spec:
     path: apps/aap-operator
     repoURL: https://github.com/hultzj/aap-policy.git
     targetRevision: main
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        # Operator Configuration
+        - name: operator.name
+          value: "ansible-automation-platform-operator"
+        - name: operator.namespace
+          value: "ansible-automation-platform"
+        # Subscription Configuration
+        - name: operator.subscription.channel
+          value: "stable-2.5"
+        - name: operator.subscription.source
+          value: "redhat-operators"
+        - name: operator.subscription.installPlanApproval
+          value: "Automatic"
+        # Environment Configuration
+        - name: operator.environment.watchNamespace
+          value: "ansible-automation-platform"
   syncPolicy:
     automated:
       prune: true

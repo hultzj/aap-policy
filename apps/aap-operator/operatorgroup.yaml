@@ -1,14 +1,12 @@
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
-  name: ansible-automation-platform-operator-group
-  namespace: ansible-automation-platform
+  name: {{ .Values.operator.operatorGroup.name }}
+  namespace: {{ .Values.operator.namespace }}
   labels:
-    app.kubernetes.io/name: ansible-automation-platform-operator
-    app.kubernetes.io/part-of: ansible-automation-platform
-    app.kubernetes.io/managed-by: gitops
+    {{- toYaml .Values.operator.labels | nindent 4 }}
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
   targetNamespaces:
-    - ansible-automation-platform
+    {{- toYaml .Values.operator.operatorGroup.targetNamespaces | nindent 4 }}

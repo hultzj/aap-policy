@@ -1,0 +1,28 @@
+# AAP Operator Configuration Values
+operator:
+  # Basic Configuration
+  name: "ansible-automation-platform-operator"
+  namespace: "ansible-automation-platform"
+  
+  # Subscription Configuration
+  subscription:
+    channel: "stable-2.5"              # Operator channel version
+    source: "redhat-operators"         # Catalog source
+    sourceNamespace: "openshift-marketplace"
+    installPlanApproval: "Automatic"   # Automatic or Manual
+  
+  # OperatorGroup Configuration
+  operatorGroup:
+    name: "ansible-automation-platform-operator-group"
+    targetNamespaces:
+      - "ansible-automation-platform"
+  
+  # Labels applied to all resources
+  labels:
+    app.kubernetes.io/name: "ansible-automation-platform-operator"
+    app.kubernetes.io/part-of: "ansible-automation-platform"
+    app.kubernetes.io/managed-by: "gitops"
+  
+  # Environment Configuration
+  environment:
+    watchNamespace: "ansible-automation-platform"

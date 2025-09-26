@@ -1,0 +1,13 @@
+apiVersion: v2
+name: aap-operator
+description: Ansible Automation Platform Operator Helm Chart
+type: application
+version: 1.0.0
+appVersion: "2.5"
+keywords:
+  - ansible
+  - automation
+  - redhat
+  - operator
+maintainers:
+  - name: AAP Team
