@@ -1,10 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Values.aapInstance.name }}-access-info-generator
-  namespace: {{ .Values.aapInstance.namespace }}
+  name: {{ .Values.aap.name }}-access-info-generator
+  namespace: {{ .Values.aap.namespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.aapInstance.name }}
+    app.kubernetes.io/name: {{ .Values.aap.name }}
     app.kubernetes.io/part-of: ansible-automation-platform
     app.kubernetes.io/managed-by: gitops
     component: access-info
@@ -17,94 +17,55 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
-      serviceAccountName: {{ .Values.automation.serviceAccount.name }}
+      serviceAccountName: {{ .Values.automation.serviceAccount }}
       containers:
       - name: access-info-generator
-        image: {{ .Values.automation.image.repository }}:{{ .Values.automation.image.tag }}
-        imagePullPolicy: {{ .Values.automation.image.pullPolicy }}
+        image: {{ .Values.automation.image }}
+        imagePullPolicy: {{ .Values.automation.pullPolicy }}
         command: ["bash", "-c"]
         args:
         - |
           # Wait for AAP controller to be ready
           echo "Waiting for AAP Controller to be ready..."
-          oc wait --for=condition=Running automationcontroller/{{ .Values.aapInstance.name }} \
-            -n {{ .Values.aapInstance.namespace }} --timeout=1800s || true
+          oc wait --for=condition=Running automationcontroller/{{ .Values.aap.name }} \
+            -n {{ .Values.aap.namespace }} --timeout=1800s || true
           
-          # Get the route URLs
+          # Get the AAP Controller URL
           CONTROLLER_URL=""
-          if oc get route -n {{ .Values.aapInstance.namespace }} -l app.kubernetes.io/name={{ .Values.aapInstance.name }} -o name | head -1; then
-            CONTROLLER_URL="https://$(oc get route -n {{ .Values.aapInstance.namespace }} -l app.kubernetes.io/name={{ .Values.aapInstance.name }} -o jsonpath='{.items[0].spec.host}' 2>/dev/null || echo 'Route not found')"
+          if oc get route -n {{ .Values.aap.namespace }} -l app.kubernetes.io/name={{ .Values.aap.name }} -o name | head -1; then
+            CONTROLLER_URL="https://$(oc get route -n {{ .Values.aap.namespace }} -l app.kubernetes.io/name={{ .Values.aap.name }} -o jsonpath='{.items[0].spec.host}' 2>/dev/null || echo 'Route not found')"
           fi
-          
-          {{- if .Values.automationHub.enabled }}
-          HUB_URL=""
-          if oc get route -n {{ .Values.automationHub.namespace }} -l app.kubernetes.io/name={{ .Values.automationHub.name }} -o name | head -1; then
-            HUB_URL="https://$(oc get route -n {{ .Values.automationHub.namespace }} -l app.kubernetes.io/name={{ .Values.automationHub.name }} -o jsonpath='{.items[0].spec.host}' 2>/dev/null || echo 'Route not found')"
-          fi
-          {{- end }}
-          
-          {{- if .Values.edaController.enabled }}
-          EDA_URL=""
-          if oc get route -n {{ .Values.edaController.namespace }} -l app.kubernetes.io/name={{ .Values.edaController.name }} -o name | head -1; then
-            EDA_URL="https://$(oc get route -n {{ .Values.edaController.namespace }} -l app.kubernetes.io/name={{ .Values.edaController.name }} -o jsonpath='{.items[0].spec.host}' 2>/dev/null || echo 'Route not found')"
-          fi
-          {{- end }}
           
           # Create access info ConfigMap
           cat <<EOF | oc apply -f -
           apiVersion: v1
           kind: ConfigMap
           metadata:
-            name: {{ .Values.aapInstance.name }}-access-info
-            namespace: {{ .Values.aapInstance.namespace }}
+            name: {{ .Values.aap.name }}-access-info
+            namespace: {{ .Values.aap.namespace }}
             labels:
-              app.kubernetes.io/name: {{ .Values.aapInstance.name }}
+              app.kubernetes.io/name: {{ .Values.aap.name }}
               app.kubernetes.io/part-of: ansible-automation-platform
               app.kubernetes.io/managed-by: gitops
           data:
-            controller-url: "${CONTROLLER_URL}"
-            controller-username: {{ .Values.aapInstance.admin.username }}
-            controller-email: {{ .Values.aapInstance.admin.email }}
-            {{- if .Values.automationHub.enabled }}
-            hub-url: "${HUB_URL}"
-            hub-username: {{ .Values.automationHub.admin.username }}
-            hub-email: {{ .Values.automationHub.admin.email }}
-            {{- end }}
-            {{- if .Values.edaController.enabled }}
-            eda-url: "${EDA_URL}"
-            eda-username: {{ .Values.edaController.admin.username }}
-            eda-email: {{ .Values.edaController.admin.email }}
-            {{- end }}
+            url: "${CONTROLLER_URL}"
+            username: "{{ .Values.aap.admin.username }}"
+            email: "{{ .Values.aap.admin.email }}"
             setup-complete: "true"
-            components-enabled: "controller{{ if .Values.automationHub.enabled }},hub{{ end }}{{ if .Values.edaController.enabled }},eda{{ end }}"
-            external-postgres: "{{ or .Values.aapInstance.postgres.external.enabled .Values.automationHub.postgres.external.enabled .Values.edaController.postgres.external.enabled }}"
+            external-postgres: "{{ .Values.aap.database.external.enabled }}"
             instructions: |
-              Ansible Automation Platform Access Information:
+              Ansible Automation Platform Access Information
+              ==========================================
               
-              === AAP Controller ===
               URL: ${CONTROLLER_URL}
-              Username: {{ .Values.aapInstance.admin.username }}
-              Password: oc get secret {{ .Values.aapInstance.name }}-admin-password -n {{ .Values.aapInstance.namespace }} -o jsonpath='{.data.password}' | base64 -d
-              Status: oc get automationcontroller {{ .Values.aapInstance.name }} -n {{ .Values.aapInstance.namespace }}
+              Username: {{ .Values.aap.admin.username }}
+              Password: oc get secret {{ .Values.aap.name }}-admin-password -n {{ .Values.aap.namespace }} -o jsonpath='{.data.password}' | base64 -d
               
-              {{- if .Values.automationHub.enabled }}
-              === Private Automation Hub ===
-              URL: ${HUB_URL}
-              Username: {{ .Values.automationHub.admin.username }}
-              Password: oc get secret {{ .Values.automationHub.name }}-admin-password -n {{ .Values.automationHub.namespace }} -o jsonpath='{.data.password}' | base64 -d
-              Status: oc get automationhub {{ .Values.automationHub.name }} -n {{ .Values.automationHub.namespace }}
+              Status Check:
+              oc get automationcontroller {{ .Values.aap.name }} -n {{ .Values.aap.namespace }}
               
-              {{- end }}
-              {{- if .Values.edaController.enabled }}
-              === Event Driven Ansible Controller ===
-              URL: ${EDA_URL}
-              Username: {{ .Values.edaController.admin.username }}
-              Password: oc get secret {{ .Values.edaController.name }}-admin-password -n {{ .Values.edaController.namespace }} -o jsonpath='{.data.password}' | base64 -d
-              Status: oc get edacontroller {{ .Values.edaController.name }} -n {{ .Values.edaController.namespace }}
-              
-              {{- end }}
-              === Overall Status ===
-              All Components: oc get automationcontroller,automationhub,edacontroller -n {{ .Values.aapInstance.namespace }}
+              Quick Access Command:
+              oc get configmap {{ .Values.aap.name }}-access-info -n {{ .Values.aap.namespace }} -o jsonpath='{.data.instructions}'
           EOF
           
           echo "Access info ConfigMap created successfully"

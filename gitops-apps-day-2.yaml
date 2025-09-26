@@ -23,30 +23,35 @@ spec:
       valueFiles:
         - values.yaml
       parameters:
-        - name: aapOperator.version
+        # Basic AAP Configuration
+        - name: aap.name
+          value: "aap-controller"
+        - name: aap.namespace
+          value: "ansible-automation-platform"
+        - name: aap.version
           value: "2.5"
-        - name: aapInstance.admin.username
+        # Admin Configuration
+        - name: aap.admin.username
           value: "admin"
-        - name: aapInstance.admin.email
+        - name: aap.admin.email
           value: "admin@example.com"
-        # License configuration (REQUIRED - set enabled=true and provide license content)
-        - name: aapInstance.license.enabled
+        # License Configuration (REQUIRED - set enabled=true and provide content)
+        - name: aap.license.enabled
           value: "false"
-        - name: aapInstance.license.secretName
+        - name: aap.license.secretName
           value: "aap-license"
-        - name: aapInstance.license.content
+        - name: aap.license.content
           value: ""  # Base64 encoded license JSON content
-        # Optional components (set to true to enable)
-        - name: automationHub.enabled
-          value: "false"
-        - name: edaController.enabled
-          value: "false"
-        # External postgres configuration (set to true to use external DB)
-        - name: aapInstance.postgres.external.enabled
-          value: "false"
-        - name: automationHub.postgres.external.enabled
-          value: "false"
-        - name: edaController.postgres.external.enabled
+        # Resource Configuration
+        - name: aap.resources.cpu
+          value: "1000m"
+        - name: aap.resources.memory
+          value: "2Gi"
+        # Storage Configuration
+        - name: aap.storage.size
+          value: "20Gi"
+        # Database Configuration (external postgres optional)
+        - name: aap.database.external.enabled
           value: "false"
   syncPolicy:
     automated:

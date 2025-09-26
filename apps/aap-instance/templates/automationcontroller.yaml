@@ -1,44 +1,44 @@
-{{- if not (empty .Values.aapInstance.admin.password) }}
+{{- if not (empty .Values.aap.admin.password) }}
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ .Values.aapInstance.name }}-admin-password
-  namespace: {{ .Values.aapInstance.namespace }}
+  name: {{ .Values.aap.name }}-admin-password
+  namespace: {{ .Values.aap.namespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.aapInstance.name }}
+    app.kubernetes.io/name: {{ .Values.aap.name }}
     app.kubernetes.io/part-of: ansible-automation-platform
     app.kubernetes.io/managed-by: gitops
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 type: Opaque
 stringData:
-  password: {{ .Values.aapInstance.admin.password | quote }}
+  password: {{ .Values.aap.admin.password | quote }}
 ---
 {{- end }}
-{{- if and .Values.aapInstance.license.enabled (not (empty .Values.aapInstance.license.content)) }}
+{{- if and .Values.aap.license.enabled (not (empty .Values.aap.license.content)) }}
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ .Values.aapInstance.license.secretName }}
-  namespace: {{ .Values.aapInstance.namespace }}
+  name: {{ .Values.aap.license.secretName }}
+  namespace: {{ .Values.aap.namespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.aapInstance.name }}
+    app.kubernetes.io/name: {{ .Values.aap.name }}
     app.kubernetes.io/part-of: ansible-automation-platform
     app.kubernetes.io/managed-by: gitops
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 type: Opaque
 stringData:
-  license: {{ .Values.aapInstance.license.content | quote }}
+  license: {{ .Values.aap.license.content | quote }}
 ---
 {{- end }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Values.aapInstance.name }}-password-generator
-  namespace: {{ .Values.aapInstance.namespace }}
+  name: {{ .Values.aap.name }}-password-generator
+  namespace: {{ .Values.aap.namespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.aapInstance.name }}
+    app.kubernetes.io/name: {{ .Values.aap.name }}
     app.kubernetes.io/part-of: ansible-automation-platform
     app.kubernetes.io/managed-by: gitops
     component: password-generator
@@ -51,22 +51,22 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
-      serviceAccountName: {{ .Values.automation.serviceAccount.name }}
+      serviceAccountName: {{ .Values.automation.serviceAccount }}
       containers:
       - name: password-generator
-        image: {{ .Values.automation.image.repository }}:{{ .Values.automation.image.tag }}
-        imagePullPolicy: {{ .Values.automation.image.pullPolicy }}
+        image: {{ .Values.automation.image }}
+        imagePullPolicy: {{ .Values.automation.pullPolicy }}
         command: ["bash", "-c"]
         args:
         - |
-          {{- if empty .Values.aapInstance.admin.password }}
+          {{- if empty .Values.aap.admin.password }}
           # Generate password only if secret doesn't exist and no password provided
-          if ! oc get secret {{ .Values.aapInstance.name }}-admin-password -n {{ .Values.aapInstance.namespace }} >/dev/null 2>&1; then
+          if ! oc get secret {{ .Values.aap.name }}-admin-password -n {{ .Values.aap.namespace }} >/dev/null 2>&1; then
             PASSWORD=$(openssl rand -base64 16)
-            oc create secret generic {{ .Values.aapInstance.name }}-admin-password \
+            oc create secret generic {{ .Values.aap.name }}-admin-password \
               --from-literal=password="$PASSWORD" \
-              -n {{ .Values.aapInstance.namespace }}
-            echo "Generated admin password for {{ .Values.aapInstance.name }}"
+              -n {{ .Values.aap.namespace }}
+            echo "Generated admin password for {{ .Values.aap.name }}"
           else
             echo "Admin password secret already exists"
           fi
@@ -77,10 +77,10 @@ spec:
 apiVersion: automationcontroller.ansible.com/v1beta1
 kind: AutomationController
 metadata:
-  name: {{ .Values.aapInstance.name }}
-  namespace: {{ .Values.aapInstance.namespace }}
+  name: {{ .Values.aap.name }}
+  namespace: {{ .Values.aap.namespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.aapInstance.name }}
+    app.kubernetes.io/name: {{ .Values.aap.name }}
     app.kubernetes.io/part-of: ansible-automation-platform
     app.kubernetes.io/managed-by: gitops
   annotations:
@@ -94,38 +94,46 @@ spec:
   nodeport_port: 30080
   
   # Admin configuration
-  admin_user: {{ .Values.aapInstance.admin.username }}
-  admin_email: {{ .Values.aapInstance.admin.email }}
-  admin_password_secret: {{ .Values.aapInstance.name }}-admin-password
+  admin_user: {{ .Values.aap.admin.username }}
+  admin_email: {{ .Values.aap.admin.email }}
+  admin_password_secret: {{ .Values.aap.name }}-admin-password
   
-  {{- if .Values.aapInstance.license.enabled }}
+  {{- if .Values.aap.license.enabled }}
   # License configuration
-  license_secret: {{ .Values.aapInstance.license.secretName }}
+  license_secret: {{ .Values.aap.license.secretName }}
   {{- end }}
   
   # PostgreSQL configuration
-  {{- if .Values.aapInstance.postgres.external.enabled }}
+  {{- if .Values.aap.database.external.enabled }}
   # External PostgreSQL configuration
-  postgres_configuration_secret: {{ .Values.aapInstance.postgres.external.secretName | default (printf "%s-postgres-configuration" .Values.aapInstance.name) }}
+  postgres_configuration_secret: {{ .Values.aap.database.external.secretName | default (printf "%s-postgres-configuration" .Values.aap.name) }}
   {{- else }}
   # Internal PostgreSQL configuration
   postgres_storage_requirements:
     requests:
-      storage: {{ .Values.aapInstance.postgres.internal.storage.size }}
-    {{- if .Values.aapInstance.postgres.internal.storage.storageClass }}
-    storageClassName: {{ .Values.aapInstance.postgres.internal.storage.storageClass }}
+      storage: {{ .Values.aap.database.internal.storage }}
+    {{- if .Values.aap.storage.storageClass }}
+    storageClassName: {{ .Values.aap.storage.storageClass }}
     {{- end }}
   
   postgres_resource_requirements:
     requests:
-      cpu: {{ .Values.aapInstance.postgres.internal.resources.requests.cpu }}
-      memory: {{ .Values.aapInstance.postgres.internal.resources.requests.memory }}
+      cpu: {{ .Values.aap.database.internal.cpu }}
+      memory: {{ .Values.aap.database.internal.memory }}
     limits:
-      cpu: {{ .Values.aapInstance.postgres.internal.resources.limits.cpu }}
-      memory: {{ .Values.aapInstance.postgres.internal.resources.limits.memory }}
+      cpu: {{ .Values.aap.database.internal.cpu | replace "m" "" | int | mul 2 }}m
+      memory: {{ .Values.aap.database.internal.memory | replace "Gi" "" | int | mul 2 }}Gi
   {{- end }}
   
-  # Task resource configuration
+  # Resource configuration
+  web_resource_requirements:
+    requests:
+      cpu: {{ .Values.aap.resources.cpu }}
+      memory: {{ .Values.aap.resources.memory }}
+    limits:
+      cpu: {{ .Values.aap.resources.cpu | replace "m" "" | int | mul 2 }}m
+      memory: {{ .Values.aap.resources.memory | replace "Gi" "" | int | mul 2 }}Gi
+  
   task_resource_requirements:
     requests:
       cpu: "500m"
@@ -134,16 +142,6 @@ spec:
       cpu: "1000m"
       memory: "2Gi"
   
-  # Web UI resource configuration
-  web_resource_requirements:
-    requests:
-      cpu: {{ .Values.aapInstance.resources.requests.cpu }}
-      memory: {{ .Values.aapInstance.resources.requests.memory }}
-    limits:
-      cpu: {{ .Values.aapInstance.resources.limits.cpu }}
-      memory: {{ .Values.aapInstance.resources.limits.memory }}
-  
-  # Execution environment resource configuration
   ee_resource_requirements:
     requests:
       cpu: "500m"
@@ -151,16 +149,3 @@ spec:
     limits:
       cpu: "1000m"
       memory: "2Gi"
-  
-  # Node selector, tolerations, and affinity
-  {{- with .Values.automation.nodeSelector }}
-  node_selector: {{ toYaml . | nindent 4 }}
-  {{- end }}
-  
-  {{- with .Values.automation.tolerations }}
-  tolerations: {{ toYaml . | nindent 4 }}
-  {{- end }}
-  
-  {{- with .Values.automation.affinity }}
-  affinity: {{ toYaml . | nindent 4 }}
-  {{- end }}
