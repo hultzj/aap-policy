@@ -6,11 +6,6 @@ aap:
   namespace: "ansible-automation-platform"
   version: "2.5"
   
-  # License (REQUIRED for full functionality)
-  license:
-    enabled: false           # Set to true and provide content
-    secretName: "aap-license"
-    content: ""             # Base64 encoded license JSON
   
   # Admin User
   admin:

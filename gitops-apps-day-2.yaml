@@ -35,13 +35,6 @@ spec:
           value: "admin"
         - name: aap.admin.email
           value: "admin@example.com"
-        # License Configuration (REQUIRED - set enabled=true and provide content)
-        - name: aap.license.enabled
-          value: "false"
-        - name: aap.license.secretName
-          value: "aap-license"
-        - name: aap.license.content
-          value: ""  # Base64 encoded license JSON content
         # Resource Configuration
         - name: aap.resources.cpu
           value: "1000m"
@@ -77,42 +70,32 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: aap-servicemesh-day2
+  name: aap-rbac-day2
   namespace: openshift-gitops
   labels:
-    app.kubernetes.io/name: aap-servicemesh
+    app.kubernetes.io/name: aap-rbac
     app.kubernetes.io/part-of: ansible-automation-platform
     deployment-phase: day-2
     optional: "true"
   annotations:
-    argocd.argoproj.io/sync-wave: "20"
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   destination:
     namespace: ansible-automation-platform
     server: https://kubernetes.default.svc
   project: default
   source:
-    path: apps/aap-servicemesh
+    path: apps/aap-rbac
     repoURL: https://github.com/hultzj/aap-policy.git
     targetRevision: main
-    helm:
-      valueFiles:
-        - values.yaml
-      parameters:
-        - name: serviceMesh.enabled
-          value: "false"
-        - name: serviceMesh.istio.enabled
-          value: "false"
-        - name: serviceMesh.ossm.enabled
-          value: "false"
   syncPolicy:
     syncOptions:
-      - CreateNamespace=false
+      - CreateNamespace=true
       - PrunePropagationPolicy=foreground
     retry:
       limit: 3
       backoff:
-        duration: 15s
+        duration: 10s
         factor: 2
         maxDuration: 3m
   revisionHistoryLimit: 3
