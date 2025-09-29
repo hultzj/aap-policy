@@ -32,7 +32,7 @@ spec:
         - name: operator.subscription.channel
           value: "stable-2.5"
         - name: operator.subscription.version
-          value: ""  # Optional: Specific CSV version (e.g., "aap-operator.v2.5.0-0.1699564237")
+          value: "2.5.0+0.1736893446"  # Optional: Specific CSV version (e.g., "aap-operator.v2.5.0-0.1699564237")
         - name: operator.subscription.source
           value: "redhat-operators"
         - name: operator.subscription.installPlanApproval
@@ -45,7 +45,7 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
+      - CreateNamespace=false
       - PrunePropagationPolicy=foreground
       - PruneLast=true
     retry:
