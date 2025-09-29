@@ -36,7 +36,7 @@ spec:
         - name: operator.subscription.source
           value: "redhat-operators"
         - name: operator.subscription.installPlanApproval
-          value: "Manual"
+          value: "Automatic"
         # Environment Configuration
         - name: operator.environment.watchNamespace
           value: "ansible-automation-platform"

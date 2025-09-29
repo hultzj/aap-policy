@@ -10,7 +10,7 @@ operator:
     version: ""                         # Use latest from channel
     source: "redhat-operators"         # Catalog source
     sourceNamespace: "openshift-marketplace"
-    installPlanApproval: "Manual"    # Automatic or Manual
+    installPlanApproval: "Automatic"    # Automatic or Manual
   
   # OperatorGroup Configuration
   operatorGroup:
