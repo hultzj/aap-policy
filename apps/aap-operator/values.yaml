@@ -7,7 +7,7 @@ operator:
   # Subscription Configuration
   subscription:
     channel: "stable-2.5"              # Operator channel version
-    version: ""                         # Specific CSV version (e.g., "aap-operator.v2.5.0-0.1699564237")
+    version: "2.5.0+0.1736893446"      # Specific CSV version (e.g., "aap-operator.v2.5.0-0.1699564237")
     source: "redhat-operators"         # Catalog source
     sourceNamespace: "openshift-marketplace"
     installPlanApproval: "Automatic"   # Automatic or Manual
