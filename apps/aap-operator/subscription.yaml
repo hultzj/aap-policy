@@ -13,6 +13,9 @@ spec:
   source: {{ .Values.operator.subscription.source }}
   sourceNamespace: {{ .Values.operator.subscription.sourceNamespace }}
   installPlanApproval: {{ .Values.operator.subscription.installPlanApproval }}
+  {{- if .Values.operator.subscription.version }}
+  startingCSV: {{ .Values.operator.subscription.version }}
+  {{- end }}
   config:
     env:
       - name: WATCH_NAMESPACE
