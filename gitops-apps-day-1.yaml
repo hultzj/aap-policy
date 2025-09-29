@@ -32,11 +32,11 @@ spec:
         - name: operator.subscription.channel
           value: "stable-2.5"
         - name: operator.subscription.version
-          value: "2.5.0+0.1736893446"  # Optional: Specific CSV version (e.g., "aap-operator.v2.5.0-0.1699564237")
+          value: "2.5.0+0.1758147230"  # Optional: Specific CSV version (e.g., "aap-operator.v2.5.0-0.1699564237")
         - name: operator.subscription.source
           value: "redhat-operators"
         - name: operator.subscription.installPlanApproval
-          value: "Automatic"
+          value: "Manual"
         # Environment Configuration
         - name: operator.environment.watchNamespace
           value: "ansible-automation-platform"
