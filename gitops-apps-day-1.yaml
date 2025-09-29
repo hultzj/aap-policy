@@ -32,7 +32,7 @@ spec:
         - name: operator.subscription.channel
           value: "stable-2.5"
         - name: operator.subscription.version
-          value: "2.5.0+0.1758147230"  # Optional: Specific CSV version (e.g., "aap-operator.v2.5.0-0.1699564237")
+          value: "aap-operator.v2.5.0-0.1758147817"  # Latest available CSV version
         - name: operator.subscription.source
           value: "redhat-operators"
         - name: operator.subscription.installPlanApproval
